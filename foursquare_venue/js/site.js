@@ -18,6 +18,8 @@ $(function() {
 	var rating = "";
 	var icon = "";
 	var address = "";
+    var token = "V2IWKJRE3ARNLV5DQEELAKQH5EPU1WQOZJCZXNDURK2VJY0V";
+    var map = "";
 	
 	$("#query").click(function(){
 		$(this).val("");
@@ -34,17 +36,26 @@ $(function() {
 			$(this).removeClass("focus");
 		}
 	});
-	
-	$("#searchform").submit(function(event){
-		event.preventDefault();
-		if (!lat) {
-			navigator.geolocation.getCurrentPosition(getLocation);
-		} else {
-			getVenues();
-		}
-	});
-	
-	function getLocation(location) {
+
+    $("#searchform").submit(function(event){
+        event.preventDefault();
+        if (!lat) {
+            navigator.geolocation.getCurrentPosition(getLocation);
+        } else {
+            getVenues();
+        }
+    });
+    $("#show_me").click(function(event){
+        event.preventDefault();
+        if (!lat) {
+            navigator.geolocation.getCurrentPosition(getLocation);
+        } else {
+            getUserHistory();
+        }
+    });
+
+
+    function getLocation(location) {
 	    lat = location.coords.latitude;
 	    lng = location.coords.longitude;
 		getVenues();
@@ -65,8 +76,9 @@ $(function() {
 					center: new google.maps.LatLng(lat,lng-.2),
 					mapTypeId: google.maps.MapTypeId.ROADMAP,
 					panControl: false
-				},
-				map = new google.maps.Map(document.getElementById('map'), myOptions);
+				};
+                map.set(myOptions);
+				//map = new google.maps.Map(document.getElementById('map'), myOptions);
 				
 				// Build markers and elements for venues returned.
 				$.each( dataobj, function() {
@@ -119,17 +131,50 @@ $(function() {
 			}
 		});
 	}
-	
+
+    function getUserHistory() {
+
+            $.ajax({
+                type: "GET",
+                url: "https://api.foursquare.com/v2/users/self/checkins?oauth_token=" + token + "&v=20140806&m=foursquare",
+                success: function(data) {
+                    history_items = data.response.checkins.items;
+
+                    for (var index in history_items) {
+                        //console.log(history_items[index].shout);
+                        markerOptions = {
+                            map: map,
+                            position: new google.maps.LatLng(history_items[index].venue.location.lat, history_items[index].venue.location.lng),
+                            title: history_items[index].venue.name,
+                            animation: google.maps.Animation.DROP,
+                            optimized: false
+                        },
+                            marker = new google.maps.Marker(markerOptions)
+                    }
+                }
+
+                });
+    }
+
+    function currentPos(pos) {
+        lat = pos.coords.latitude;
+        lng = pos.coords.longitude;
+        mapbuild();
+    }
+
 	function mapbuild() {
 		$("#venues").hide();
 		var myOptions = {
-		zoom:5,
-		center: new google.maps.LatLng(38.962612,-99.080879),
+		zoom:10,
+		center: new google.maps.LatLng(lat,lng),
 		mapTypeId: google.maps.MapTypeId.ROADMAP,
 		panControl: false
-		},
+		};
+
 		map = new google.maps.Map(document.getElementById('map'), myOptions);
 	}
-	
-	mapbuild();
+
+    navigator.geolocation.getCurrentPosition(currentPos);
+
+
 });
